@@ -330,8 +330,8 @@ void LaserMapping::ProcessPointCloud2(const sensor_msgs::msg::PointCloud2::Share
             scan_count_++;
             double timestamp = ToSec(msg->header.stamp);
             if (timestamp < last_timestamp_lidar_) {
-                LOG(ERROR) << "lidar loop back, clear buffer";
-                lidar_buffer_.clear();
+                LOG(ERROR) << "lidar loop back, dt: " << timestamp - last_timestamp_lidar_;
+                return;
             }
 
             LOG(INFO) << "get cloud at " << std::setprecision(14) << timestamp
@@ -419,7 +419,6 @@ bool LaserMapping::SyncPackages() {
     }
 
     if (last_timestamp_imu_ < lidar_end_time_) {
-        LOG(INFO) << last_timestamp_imu_ << ", " << lidar_end_time_;
         return false;
     }
 
