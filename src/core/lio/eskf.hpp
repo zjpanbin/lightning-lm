@@ -51,10 +51,12 @@ class ESKF {
         bool valid_ = true;
         bool converge_ = true;
 
-        Eigen::Matrix<double, Eigen::Dynamic, 1> residual_;          // residual: z-Hx
-        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> h_x_;  // dr/dx, H阵
-        Eigen::Matrix<double, Eigen::Dynamic, 1> s_;
-        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R_;
+        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> R_;  // R 阵，观测噪声
+
+        /// NOTE 我们还是传H^T H 比较好，光传一个H会因为残差维度不对导致没法融合各类残差
+        /// 这个只需累加即可
+        Eigen::Matrix<double, 12, 12> HTH_;
+        Eigen::Matrix<double, 12, 1> HTr_;
 
         double lidar_residual_mean_ = 0;
         double lidar_residual_max_ = 0;

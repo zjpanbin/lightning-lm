@@ -205,35 +205,30 @@ void ESKF::Update(ESKF::ObsType obs, const double& R) {
         }
 
         /// 处理各类观测模型
-        if (state_dim_ > dof_measurement) {
-            Eigen::MatrixXd h_x_cur = Eigen::MatrixXd::Zero(dof_measurement, state_dim_);
-            h_x_cur.topLeftCorner(dof_measurement, 12) = custom_obs_model_.h_x_;
-            custom_obs_model_.R_ = R * Eigen::MatrixXd::Identity(dof_measurement, dof_measurement);
+        /// 纯雷达观测
+        double R_inv = 1.0 / (R * dof_measurement);
 
-            Eigen::MatrixXd K =
-                P_ * h_x_cur.transpose() * (h_x_cur * P_ * h_x_cur.transpose() + custom_obs_model_.R_).inverse();
-            K_r = K * custom_obs_model_.residual_;
-            K_H = K * h_x_cur;
-        } else {
-            /// 纯雷达观测
-            double R_inv = 1.0 / (R * dof_measurement);
+        // HTRH = H^T R^-1 H
+        Eigen::Matrix<double, 12, 12> HTH = custom_obs_model_.HTH_;
 
-            // HTRH = H^T R^-1 H
-            Eigen::Matrix<double, 12, 12> HTH = custom_obs_model_.h_x_.transpose() * custom_obs_model_.h_x_;
+        CovType P_temp = (P_ / R).inverse();  // P阵上面已经更新
+        P_temp.block<12, 12>(0, 0) += HTH;    // Q in (38)
+        CovType Q_inv = P_temp.inverse();     // Q inv
 
-            CovType P_temp = (P_ / R).inverse();  // P阵上面已经更新
-            P_temp.block<12, 12>(0, 0) += HTH;    // Q in (38)
-            CovType Q_inv = P_temp.inverse();     // Q inv
+        // Q*H^T * R^-1 * r = K * r
+        // <-- K ----->
+        K_r = Q_inv.template block<23, 12>(0, 0) * custom_obs_model_.HTr_;
 
-            // Q*H^T * R^-1 * r = K * r
-            // <-- K ----->
-            K_r = Q_inv.template block<23, 12>(0, 0) * custom_obs_model_.h_x_.transpose() * custom_obs_model_.residual_;
+        // K_H = Q^-1 H^T R^-1 H
+        //       <--  K     ->
+        K_H.setZero();
+        K_H.template block<23, 12>(0, 0) = Q_inv.template block<23, 12>(0, 0) * HTH;
 
-            // K_H = Q^-1 H^T R^-1 H
-            //       <--  K     ->
-            K_H.setZero();
-            K_H.template block<23, 12>(0, 0) = Q_inv.template block<23, 12>(0, 0) * HTH;
-        }
+        /// 检查 K_H 的奇异性
+        // Eigen::JacobiSVD<Eigen::MatrixXd> svd(K_H, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        // auto singular = svd.singularValues();
+        // double singular_th = singular(0, 0) / singular(1, 0);
+        // LOG(INFO) << "singular check: " << singular_th << ", " << singular(0, 0) << ", " << singular(1, 0);
 
         // dx = Kr + (KH-I) dx
         dx_current = K_r + (K_H - Eigen::Matrix<double, 23, 23>::Identity()) * dx_current;
@@ -244,6 +239,8 @@ void ESKF::Update(ESKF::ObsType obs, const double& R) {
                 return;
             }
         }
+
+        // LOG(INFO) << "iter " << iterations_ << ", dx: " << dx_current.transpose();
 
         if (!use_aa_) {
             x_ = x_.boxplus(dx_current);
