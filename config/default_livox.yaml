@@ -129,7 +129,7 @@ pgo:
   smooth_factor: 0.01
 roi:
   height_max: 10.0
-  height_min: -0.5
+  height_min: 0.5
   range_max: 70
   range_min: 3.0
 ui:

@@ -629,7 +629,6 @@ void LidarLoc::Align(const CloudPtr& input) {
     // 用纯激光定位有点太抖了，加一些权重
     Vec6d delta = (guess_from_lo.inverse() * current_pose_esti).log();
     SE3 esti_balanced = guess_from_lo * SE3::exp(delta * 0.1);
-
     current_pose_esti = esti_balanced;
 
     // double score_self = 0;

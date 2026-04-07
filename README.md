@@ -216,11 +216,12 @@ Lightning-LM特性：
 
 ### 2026.4.2
 
-- 对建图和定位的稳定性进行了大量提升，已适配issue里提到的多层数据，云深处提供的多层数据，欢迎大家尝试！
+- 对建图和定位的稳定性进行了大量提升，已适配issue里提到的多层数据，云深处提供的多层数据，相关数据正在上传百度云，欢迎大家尝试！
 - 调整了状态变量的结构和维度，现在ba, grav，offset_R, offset_t不用在线估计了，状态变量减到了12维（原本是23维）
-- 由于部分数据集上加计误差太大导致状态飞走，现在只用陀螺部分来计算lio了
+- 添加定位部分激光定位的修正量比例，现在会基于LIO预测来进行定位，防止激光跳变太大
 - LaserMapping部分加上了点到点ICP误差,点到点的部分也使用多线程加速
-- ESKF部分加上了速度clip和dv的缩放（限制某些场景下速度变化太快）
+- ESKF部分加了一些实用的trick
+- 定位现在会取LIO的关键帧来进行map to map配准 
 - 针对云深处的几个数据集和github issues里的数据集做了调参
 - 调整了ESKF的接口以适应点到点ICP的情况（因为点到点ICP与点面ICP的维度不同）
 - 添加了一些Kalman filter里的tricks: 对P阵做对称化，保护最小值等
@@ -396,17 +397,17 @@ imu和雷达外参默认为零就好，我们对这个不敏感。
 - NCLT: pass
 - VBR: pass
 - Livox Multi Floor: pass
-- github: 
+- github:
     - 斜装30度 https://github.com/gaoxiang12/lightning-lm/issues/75#issuecomment-4131131883 pass 需要关掉IMU filter
     - multi_floor 多层地图 pass 可以建图但是没法闭环
-    - 纯室外 高架桥 
+    - 纯室外 高架桥
 - geely: pass
 - yunshenchu
-  - building1 多层室内外混合 pass
-  - building2 pass
-  - building3 pass
-  - grass pass
-  - road1 pass
+    - building1 多层室内外混合 pass
+    - building2 pass
+    - building3 pass
+    - grass 需要把最小高度设高一些 例如0.5以上
+    - road1 同上 pass
 
 2. 定位
 
